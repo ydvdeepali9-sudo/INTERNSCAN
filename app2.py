@@ -15,6 +15,7 @@ SCAM_KEYWORDS = [
     "registration",
     "rupees",
     "earn",
+    "salary",
     "guaranteed",
 ]
 SUSPICIOUS_DOMAINS = ["@gmail.com", "@yahoo.com", "@outlook.com"]
