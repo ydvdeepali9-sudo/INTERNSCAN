@@ -1,5 +1,6 @@
 import csv
 import math
+import re
 import streamlit as st
 
 # Global Settings
@@ -67,8 +68,7 @@ st.set_page_config(
 
 st.title("🛡️ InternScan: Job Scam Detection System")
 st.write(
-    "Class 12 Corporate Security Simulation Project (Powered by NLP & Random"
-    " Forest)"
+    "Class 12 Corporate Security Simulation Project (Powered by NLP & Risk Analysis)"
 )
 st.markdown("---")
 
@@ -77,8 +77,7 @@ data_results = load_and_train_simulation()
 
 if data_results is None:
   st.error(
-      f"❌ Critical Error: '{DATASET_FILE}' not found in this folder! Website"
-      " cannot start."
+      f"❌ Critical Error: '{DATASET_FILE}' not found in this folder! Website cannot start."
   )
 else:
   trained_weights, total_rec, scam_rec, safe_rec, entropy_val = data_results
@@ -97,8 +96,7 @@ else:
       "Paste the Job Description text here:",
       height=150,
       placeholder=(
-          "Example: Urgent requirement! Earn 5000/day. Pay 500 registration"
-          " fee..."
+          "Example: Urgent requirement! Earn 5000/day. Pay 500 registration fee..."
       ),
   )
   email_input = st.text_input(
@@ -118,35 +116,49 @@ else:
       risk_score = 0
       triggered_features = []
 
-      # 1. Check for Structural Anomaly (Too Short / Suspicious Text)
-      if word_count < 10:
-        risk_score += 40
+      # 1. Unrealistic Salary / Excessive Payout Anomaly
+      numbers = [int(n) for n in re.findall(r"\b\d+\b", text_lower)]
+      has_unrealistic_amount = any(num >= 50000 for num in numbers)
+      has_frequency_payout = any(
+          p in text_lower for p in ["per day", "daily", "per hour", "p/d"]
+      )
+
+      if has_unrealistic_amount or (
+          any(n >= 5000 for n in numbers) and has_frequency_payout
+      ):
+        risk_score += 65
         triggered_features.append(
-            f"Structural Anomaly: Unusually brief description ({word_count}"
-            " words). Lacks typical job specifications."
+            "🚨 Unrealistic Payout Anomaly: Unreasonably high financial promise/daily payout detected."
         )
 
-      # 2. Check for Offensive / Suspicious Terms
+      # 2. Check for Structural Anomaly (Too Short / Incomplete)
+      if word_count < 10:
+        risk_score += 35
+        triggered_features.append(
+            f"⚠️ Structural Anomaly: Description is too short ({word_count} words). Lacks job role details."
+        )
+
+      # 3. Check for Offensive / Suspicious Terms
       for bad_word in PROFANITY_KEYWORDS:
         if bad_word in text_lower or bad_word in email_lower:
-          risk_score += 60
+          risk_score += 50
           triggered_features.append(
-              "Content Flag Intercepted: High-risk/abusive/suspicious term"
-              f" detected ('{bad_word}')."
+              f"⛔ Content Violation: High-risk/abusive term detected ('{bad_word}')."
           )
 
-      # 3. Check Scam Keywords
+      # 4. Check Scam Keywords
       for word in SCAM_KEYWORDS:
         if word in words:
           risk_score += 20
-          triggered_features.append(f"Keyword Flag Intercepted: '{word}'")
+          triggered_features.append(
+              f"🚩 High-Risk Keyword Flag: '{word}' identified in text."
+          )
 
-      # 4. Check Email Domain
+      # 5. Check Email Domain
       if any(domain in email_lower for domain in SUSPICIOUS_DOMAINS):
-        risk_score += 15
+        risk_score += 20
         triggered_features.append(
-            "Sender Domain Alert: Public server used instead of corporate"
-            " domain."
+            "📧 Sender Domain Alert: Public email domain (Gmail/Yahoo/Outlook) used instead of corporate server."
         )
 
       # Cap Risk Score at 100%
@@ -165,20 +177,19 @@ else:
         )
       elif risk_score >= 30:
         st.warning(
-            "⚠️ Final Classification Verdict: [ MODERATE RISK / CAUTION"
-            " REQUIRED ]"
+            "⚠️ Final Classification Verdict: [ MODERATE RISK / CAUTION REQUIRED ]"
         )
       else:
         st.success(
             "✅ Final Classification Verdict: [ LOW RISK / SAFE LISTING ]"
         )
 
-      # Expandable Trace Logs
-      with st.expander("🛠️ View System Trace Logs & Risk Vectors"):
-        if triggered_features:
-          for feature in triggered_features:
-            st.write(f"- {feature}")
-        else:
-          st.write(
-              "- No critical risk vectors detected in the textual structures."
-          )
+      # Prominent Risk Analysis Section (Directly Visible)
+      st.markdown("### 📋 Risk Factor Analysis Breakdown")
+      if triggered_features:
+        for feature in triggered_features:
+          st.error(feature) if risk_score >= 60 else st.warning(feature)
+      else:
+        st.success(
+            "✅ No critical risk vectors detected in the textual structures."
+        )
