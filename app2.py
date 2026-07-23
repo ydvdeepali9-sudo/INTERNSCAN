@@ -4,15 +4,14 @@ import re
 import streamlit as st
 DATASET_FILE = "kaggle_scams.csv"
 SCAM_KEYWORDS = ["fee","deposit","urgent","pay","whatsapp","telegram","registration","rupees","earn","salary","guaranteed"]
+PROFANITY_KEYWORDS = ["scam","fraud","abuse","fake","cheat"]
 SUSPICIOUS_DOMAINS = ["@gmail.com", "@yahoo.com", "@outlook.com"]
 @st.cache_data
 def load_and_train_simulation():
   word_counts_in_scams = {word: 0 for word in SCAM_KEYWORDS}
   total_records, scam_records, safe_records = 0, 0, 0
   try:
-    with open(
-        DATASET_FILE, mode="r", encoding="latin-1", errors="ignore"
-    ) as file:
+    with open(DATASET_FILE, mode="r", encoding="latin-1", errors="ignore") as file:
       csv_reader = csv.reader(file)
       next(csv_reader, None) 
       for row in csv_reader:
@@ -31,58 +30,30 @@ def load_and_train_simulation():
     entropy = (
         -(p_scam * math.log2(p_scam) + p_safe * math.log2(p_safe))
         if p_scam > 0 and p_safe > 0
-        else 0
-    )
-    return (
-        word_counts_in_scams,
-        total_records,
-        scam_records,
-        safe_records,
-        entropy,
-    )
+        else 0)
+    return ( word_counts_in_scams, total_records, scam_records, safe_records, entropy,)
   except FileNotFoundError:
     return None
 
-st.set_page_config(
-    page_title="InternScan AI", page_icon="🛡️", layout="centered"
-)
-
+st.set_page_config(page_title="InternScan AI", page_icon="🛡️", layout="centered")
 st.title("🛡️ InternScan: Job Scam Detection System")
-st.write(
-    "Class 12 Corporate Security Simulation Project (Powered by NLP & Risk Analysis)"
-)
+st.write("Class 12 Corporate Security Simulation Project (Powered by NLP & Risk Analysis)")
 st.markdown("---")
-
 data_results = load_and_train_simulation()
-
 if data_results is None:
-  st.error(
-      f"❌ Critical Error: '{DATASET_FILE}' not found in this folder! Website cannot start."
-  )
+  st.error(f"❌ Critical Error: '{DATASET_FILE}' not found in this folder! Website cannot start.")
 else:
   trained_weights, total_rec, scam_rec, safe_rec, entropy_val = data_results
-
   st.sidebar.header("📊 Dataset Analytics Dashboard")
   st.sidebar.info(f"**Total Records Trained:** {total_rec}")
   st.sidebar.success(f"**Genuine Samples:** {safe_rec}")
   st.sidebar.error(f"**Scam Samples:** {scam_rec}")
   st.sidebar.warning(f"**Dataset Entropy:** {entropy_val:.4f}")
-
-  # Website Input Interface
   st.subheader("🔍 Scan a New Job Posting / Email")
-
   text_input = st.text_area(
       "Paste the Job Description text here:",
       height=150,
-      placeholder=(
-          "Example: Urgent requirement! Earn 5000/day. Pay 500 registration fee..."
-      ),
-  )
-  email_input = st.text_input(
-      "Recruiter's Email Address:", placeholder="hr@company.com"
-  )
-
-  # Scan Button Action
+      placeholder=( "Example: Urgent requirement! Earn 5000/day. Pay 500 registration fee..."),email_input = st.text_input("Recruiter's Email Address:", placeholder="hr@company.com")
   if st.button("🚀 Run AI Scan Risk Analysis"):
     if not text_input.strip():
       st.warning("⚠️ Please paste some text content to analyze.")
@@ -91,17 +62,11 @@ else:
       word_count = len(words)
       text_lower = text_input.lower()
       email_lower = email_input.lower()
-
       risk_score = 0
       triggered_features = []
-
-      # 1. Unrealistic Salary / Excessive Payout Anomaly
       numbers = [int(n) for n in re.findall(r"\b\d+\b", text_lower)]
       has_unrealistic_amount = any(num >= 50000 for num in numbers)
-      has_frequency_payout = any(
-          p in text_lower for p in ["per day", "daily", "per hour", "p/d"]
-      )
-
+      has_frequency_payout = any(p in text_lower for p in ["per day", "daily", "per hour", "p/d"])
       if has_unrealistic_amount or (
           any(n >= 5000 for n in numbers) and has_frequency_payout
       ):
