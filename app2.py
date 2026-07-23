@@ -2,27 +2,9 @@ import csv
 import math
 import re
 import streamlit as st
-
-# Global Settings
 DATASET_FILE = "kaggle_scams.csv"
-SCAM_KEYWORDS = [
-    "fee",
-    "deposit",
-    "urgent",
-    "pay",
-    "whatsapp",
-    "telegram",
-    "registration",
-    "rupees",
-    "earn",
-    "salary",
-    "guaranteed",
-]
+SCAM_KEYWORDS = ["fee","deposit","urgent","pay","whatsapp","telegram","registration","rupees","earn","salary","guaranteed"]
 SUSPICIOUS_DOMAINS = ["@gmail.com", "@yahoo.com", "@outlook.com"]
-PROFANITY_KEYWORDS = ["nigga", "niggas", "slaves", "sale", "bitch", "scam"]
-
-
-# Data Load & Training Simulation Logic
 @st.cache_data
 def load_and_train_simulation():
   word_counts_in_scams = {word: 0 for word in SCAM_KEYWORDS}
@@ -32,7 +14,7 @@ def load_and_train_simulation():
         DATASET_FILE, mode="r", encoding="latin-1", errors="ignore"
     ) as file:
       csv_reader = csv.reader(file)
-      next(csv_reader, None)  # Skip header
+      next(csv_reader, None) 
       for row in csv_reader:
         if not row or len(row) < 2:
           continue
@@ -61,8 +43,6 @@ def load_and_train_simulation():
   except FileNotFoundError:
     return None
 
-
-# Website Structure & UI Configuration
 st.set_page_config(
     page_title="InternScan AI", page_icon="🛡️", layout="centered"
 )
@@ -73,7 +53,6 @@ st.write(
 )
 st.markdown("---")
 
-# Data Loading Execution
 data_results = load_and_train_simulation()
 
 if data_results is None:
@@ -83,7 +62,6 @@ if data_results is None:
 else:
   trained_weights, total_rec, scam_rec, safe_rec, entropy_val = data_results
 
-  # Sidebar Analytics Dashboard
   st.sidebar.header("📊 Dataset Analytics Dashboard")
   st.sidebar.info(f"**Total Records Trained:** {total_rec}")
   st.sidebar.success(f"**Genuine Samples:** {safe_rec}")
